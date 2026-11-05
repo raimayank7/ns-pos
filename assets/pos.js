@@ -7,6 +7,26 @@
   var $ = NS.$, $$ = NS.$$, esc = NS.esc, num = NS.num, r2 = NS.r2, t = NS.t;
   var ITEMS = [], K;
   var TITLE = { tax: 'TAX INVOICE', supply: 'BILL OF SUPPLY', plain: 'CASH MEMO' };
+  /* the same bill on A4 or A5 paper, in the design chosen (Classic, Bold, Bill book...) */
+  function page(d, o, K) {
+    var tax = d.kind === 'tax', b = d.buyer, sg = { '04': 1, '26': 1, '31': 1, '35': 1, '38': 1 }[d.seller.state] ? 'UTGST' : 'SGST';
+    var rows = o.rows.length ? o.rows.map(function (r, i) {
+      return '<tr><td>' + (i + 1) + '</td><td class="l">' + esc(r.it.desc) + '</td>' + (tax ? '<td class="mono">' + esc(r.it.hsn || '') + '</td>' : '') + '<td class="n">' + NS.qty(num(r.it.qty)) + ' ' + esc(r.it.unit) + '</td>' +
+        '<td class="n">' + NS.money(tax ? num(r.it.rate) : num(r.it.price || r.it.rate), false) + '</td>' + (tax ? '<td class="n">' + r.g + '%</td>' : '') + '<td class="n">' + NS.money(r.amount, false) + '</td></tr>';
+    }).join('') : '<tr><td colspan="' + (tax ? 7 : 5) + '" class="ph">Items you add appear here</td></tr>';
+    var rates = tax && Object.keys(o.byRate).length ? '<table class="sum"><caption>GST by rate</caption><thead><tr><th>GST %</th><th class="n">Taxable</th><th class="n">Tax</th></tr></thead><tbody>' +
+      Object.keys(o.byRate).sort(function (x, y) { return x - y; }).map(function (g) { var x = o.byRate[g]; return '<tr><td>' + g + '%</td><td class="n">' + NS.money(x.taxable, false) + '</td><td class="n">' + NS.money(x.tax, false) + '</td></tr>'; }).join('') + '</tbody></table>' : '';
+    return K.open(d, 'pos') + K.head(d, TITLE[d.kind], '') +
+      K.meta([[d.kind === 'plain' ? 'Memo No.' : 'Bill No.', '<span class="mono">' + esc(d.no) + '</span>'], ['Date', NS.fmtDate(d.date) + (d.time ? ' ' + esc(d.time) : '')], ['Paid by', K.mode(d.payMode)],
+        d.payMode === 'cash' && num(d.tender) ? ['Cash given', NS.money(num(d.tender))] : null, d.payMode === 'cash' && num(d.tender) ? ['Change', NS.money(Math.max(0, o.change))] : null]) +
+      (b.name || b.gstin ? '<div class="parties">' + K.party(b, 'Customer') + '</div>' : '') +
+      '<table class="lines"><thead><tr><th>#</th><th class="l">Item</th>' + (tax ? '<th>HSN</th>' : '') + '<th class="n">Qty</th><th class="n">Rate</th>' + (tax ? '<th class="n">GST</th>' : '') + '<th class="n">Amount</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+      '<div class="foot"><div class="foot-l">' + K.words(o.total) + rates + (d.kind === 'supply' ? '<p class="small">Composition taxable person, not eligible to collect tax on supplies.</p>' : '') +
+        (d.notes ? '<p class="small">' + esc(d.notes).replace(/\n/g, '<br>') + '</p>' : '') + '</div><div class="foot-r">' +
+        K.tot([tax ? ['Taxable value', NS.money(o.taxable)] : null, tax && o.intra ? ['CGST', NS.money(o.cgst)] : null, tax && o.intra ? [sg, NS.money(o.sgst)] : null, tax && !o.intra ? ['IGST', NS.money(o.igst)] : null,
+          o.roundOff ? ['Round off', (o.roundOff > 0 ? '+' : '−') + NS.money(Math.abs(o.roundOff))] : null, ['Total (' + NS.qty(o.qty) + ' qty)', NS.money(o.total), 'grand']]) + '</div></div>' +
+      K.sign(d) + K.made() + '</div>';
+  }
   var RATES = [0, 5, 18, 40, 3, 0.25, 12];
 
   function row(m) { return { desc: '', code: '', hsn: '', qty: 1, unit: 'Nos', price: '', rate: '', disc: '', gst: 18 }; }
@@ -165,6 +185,7 @@
             K.f('incl', t('pos.incl'), { type: 'check', show: 'kind=tax', hint: t('pos.inclh') }) +
             K.f('no', K.tw('l.no'), { max: 16, ltr: 1, hint: t('h.no2') }) + K.f('date', t('l.date'), { type: 'date' }) +
             K.f('paper', t('l.paper'), { type: 'select', opts: ['th80', 'th58', 'a5', 'a4'].map(function (k) { return [k, t('pp.' + k)]; }) }) +
+            K.design('paper=a4|a5') +
             K.f('notes', t('l.notes'), { type: 'textarea', wide: true, ph: t('pos.noteph') }) + '</div>') + '</details>' +
         '<datalist id="dl-units"><option value="Nos"><option value="Pcs"><option value="Kg"><option value="Gm"><option value="Ltr"><option value="Pack"><option value="Box"><option value="Dozen"></datalist>' +
         '<datalist id="dl-rates">' + RATES.map(function (r) { return '<option value="' + r + '">'; }).join('') + '</datalist>';
@@ -243,6 +264,7 @@
     shareText: function (d, o) { return '\nPaid by: ' + K.mode(d.payMode); },
     upiShare: false,
     sheet: function (d, o, K) {
+      if (!/^th/.test(d.paper)) return page(d, o, K);
       var tax = d.kind === 'tax', b = d.buyer, line = function (l, r, c) { return [l, r, c]; };
       var head = K.thOpen(d, TITLE[d.kind]) + K.kv([line(d.kind === 'plain' ? 'Memo No.' : 'Bill No.', '<span class="mono">' + esc(d.no) + '</span>'), line('Date', NS.fmtDate(d.date) + (d.time ? ' ' + esc(d.time) : '')),
         b.name ? line('Customer', esc(b.name)) : null, b.gstin ? line('GSTIN', '<span class="mono">' + esc(b.gstin) + '</span>') : null, b.phone ? line('Phone', esc(b.phone)) : null]);
