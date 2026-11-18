@@ -1,6 +1,6 @@
 /* pos.niveshsahayak.in: quick billing counter. Search or scan an item, take cash or UPI, show the change, print a thermal receipt.
    A bill is saved as a normal invoice record (type 'invoice', counter: 1, kind tax / supply / plain, status 'paid'), so the
-   Nivesh Sahayak App counts it as a sale paid on the spot and billing.niveshsahayak.in can open it. Its own number series POS/YY-YY/0001.
+   NSBiz counts it as a sale paid on the spot and billing.niveshsahayak.in can open it. Its own number series POS/YY-YY/0001.
    Shelf prices usually include GST, so the counter takes the price with GST and stores the rate without it (as every other tool does). */
 (function () {
   'use strict';
