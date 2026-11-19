@@ -258,7 +258,7 @@
       rec.items = rec.items.filter(function (it) { return it.desc || num(it.rate); });
       rec.withGst = rec.kind === 'tax'; rec.status = 'paid'; rec.round = true; rec.change = o.change;
     },
-    saved: function () { NSStore.list('item').then(function (l) { ITEMS = l; }); },
+    saved: function () { NSStore.list('item').then(function (l) { ITEMS = NS.active(l); }); },
     copyOf: function (d) { d.tender = ''; d.time = ''; d.buyer = { name: '', addr: '', city: '', pin: '', state: '', gstin: '', phone: '' }; },
     histPill: function (d) { return ' <span class="pill ok">' + esc(t('pm.' + (d.payMode || 'cash'))) + '</span>'; },
     shareText: function (d, o) { return '\nPaid by: ' + K.mode(d.payMode); },
@@ -293,7 +293,7 @@
       });
     },
     ready: function (K) {
-      NSStore.list('item').then(function (l) { ITEMS = l; });
+      NSStore.list('item').then(function (l) { ITEMS = NS.active(l); });
       var d = K.doc();
       if (!K.editing() && d.seller.name && !d.items.some(function (it) { return it.desc; })) { var k = kindFor(d.seller); if (k !== d.kind) { d.kind = k; K.refill(); } }
       /* the camera and day-total windows live outside the form, so a language change never closes them */
