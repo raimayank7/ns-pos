@@ -158,7 +158,7 @@
   }
 
   K = NS.kit({
-    type: 'pos', docType: 'invoice', prefix: 'POS', digits: 4, paper: 'th80', papers: ['th80', 'th58', 'a5', 'a4'],
+    type: 'pos', docType: 'invoice', prefix: 'POS', digits: 4, paper: 'th80', papers: ['th80', 'th58', 'a5', 'a4', 'a3', 'a6', 'letter', 'legal'],
     mine: function (d) { return !!d.counter; },
     name: function (d) { return d.kind === 'tax' ? 'Invoice' : d.kind === 'supply' ? 'Bill of Supply' : 'Cash Memo'; },
     blank: function () { return { counter: 1, pos: '', kind: 'plain', incl: true, round: true, status: 'paid', payMode: 'cash', tender: '', time: '', items: [row()] }; },
@@ -184,8 +184,8 @@
             K.f('kind', t('pos.kind'), { type: 'select', opts: [['tax', t('k.tax')], ['supply', t('k.supply')], ['plain', t('k.cashmemo')]], wide: true, hint: t('pos.kindh') }) +
             K.f('incl', t('pos.incl'), { type: 'check', show: 'kind=tax', hint: t('pos.inclh') }) +
             K.f('no', K.tw('l.no'), { max: 16, ltr: 1, hint: t('h.no2') }) + K.f('date', t('l.date'), { type: 'date' }) +
-            K.f('paper', t('l.paper'), { type: 'select', opts: ['th80', 'th58', 'a5', 'a4'].map(function (k) { return [k, t('pp.' + k)]; }) }) +
-            K.design('paper=a4|a5') +
+            K.f('paper', t('l.paper'), { type: 'select', opts: ['th80', 'th58', 'a5', 'a4', 'a3', 'a6', 'letter', 'legal'].map(function (k) { return [k, NS.ppName(k)]; }) }) +
+            K.design('paper=a4|a5|a3|a6|letter|legal') +
             K.f('notes', t('l.notes'), { type: 'textarea', wide: true, ph: t('pos.noteph') }) + '</div>') + '</details>' +
         '<datalist id="dl-units"><option value="Nos"><option value="Pcs"><option value="Kg"><option value="Gm"><option value="Ltr"><option value="Pack"><option value="Box"><option value="Dozen"></datalist>' +
         '<datalist id="dl-rates">' + RATES.map(function (r) { return '<option value="' + r + '">'; }).join('') + '</datalist>';
